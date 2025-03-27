@@ -1,0 +1,34 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Trip {
+  id            String      @id @default(uuid())
+  destination   String
+  departureDate String
+  departureTime String
+  price         Float
+  busType       BusType
+  passengers    Passenger[]
+}
+
+model Passenger {
+  id         String @id @default(uuid())
+  name       String
+  cpf        String
+  seatNumber String
+  hasPaid    Boolean
+  tripId     String
+  trip       Trip   @relation(fields: [tripId], references: [id], onDelete: Cascade)
+}
+
+enum BusType {
+  small
+  medium
+  large
+}
