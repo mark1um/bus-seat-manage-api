@@ -206,6 +206,38 @@ app.get("/trips/:tripId/passengers/pdf", async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
+// Remover passageiro de uma viagem
+app.delete("/trips/:tripId/passengers/:passengerId", async (req, res) => {
+  try {
+    const { tripId, passengerId } = req.params;
+
+    // Verificar se o passageiro existe
+    const passenger = await prisma.passenger.findUnique({
+      where: { id: passengerId },
+    });
+
+    if (!passenger) {
+      return res.status(404).json({ error: "Passenger not found" });
+    }
+
+    // Verificar se o passageiro pertence à viagem
+    if (passenger.tripId !== tripId) {
+      return res
+        .status(400)
+        .json({ error: "Passenger does not belong to this trip" });
+    }
+
+    // Deletar o passageiro
+    await prisma.passenger.delete({
+      where: { id: passengerId },
+    });
+
+    res.status(204).send(); // No Content
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: error.message });
+  }
+});
 
 app.listen(PORT, () => {
   console.log(`Servidor rodando na porta ${PORT}`);
