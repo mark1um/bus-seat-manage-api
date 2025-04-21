@@ -47,7 +47,11 @@ app.post("/trips", async (req, res) => {
 
 app.get("/trips", async (req, res) => {
   try {
-    const trips = await prisma.trip.findMany();
+    const trips = await prisma.trip.findMany({
+      orderBy: {
+        departureDate: 'desc'
+      }
+    });
     res.json(trips);
   } catch (error) {
     res.status(500).json({ error: error.message });
