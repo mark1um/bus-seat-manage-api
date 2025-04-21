@@ -50,9 +50,34 @@ app.get("/trips", async (req, res) => {
     const trips = await prisma.trip.findMany({
       orderBy: {
         departureDate: 'desc'
+      },
+      include: {
+        passengers: true
       }
     });
-    res.json(trips);
+
+    // Adicionar informações de contagem de assentos para cada viagem
+    const tripsWithSeatInfo = trips.map(trip => {
+      const totalSeats = {
+        small: 20,
+        medium: 30,
+        large: 40
+      }[trip.busType];
+
+      const occupiedSeats = trip.passengers.length;
+      const availableSeats = totalSeats - occupiedSeats;
+
+      return {
+        ...trip,
+        seatsInfo: {
+          totalSeats,
+          occupiedSeats,
+          availableSeats
+        }
+      };
+    });
+
+    res.json(tripsWithSeatInfo);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
