@@ -50,32 +50,35 @@ app.get("/trips", async (req, res) => {
     const trips = await prisma.trip.findMany({
       orderBy: {
         departureDate: 'desc'
-      },
-      include: {
-        passengers: true
       }
     });
 
     // Adicionar informações de contagem de assentos para cada viagem
-    const tripsWithSeatInfo = trips.map(trip => {
+    const tripsWithSeatInfo = await Promise.all(trips.map(async trip => {
+      const passengersCount = await prisma.passenger.count({
+        where: { tripId: trip.id }
+      });
+
       const totalSeats = {
         small: 20,
         medium: 30,
         large: 50
       }[trip.busType];
 
-      const occupiedSeats = trip.passengers.length;
-      const availableSeats = totalSeats - occupiedSeats;
-
       return {
-        ...trip,
+        id: trip.id,
+        destination: trip.destination,
+        departureDate: trip.departureDate,
+        departureTime: trip.departureTime,
+        price: trip.price,
+        busType: trip.busType,
         seatsInfo: {
           totalSeats,
-          occupiedSeats,
-          availableSeats
+          occupiedSeats: passengersCount,
+          availableSeats: totalSeats - passengersCount
         }
       };
-    });
+    }));
 
     res.json(tripsWithSeatInfo);
   } catch (error) {
