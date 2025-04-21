@@ -58,7 +58,7 @@ const authMiddleware = (req, res, next) => {
 };
 
 // Rotas de autenticação
-app.post("/api/auth/register", async (req, res) => {
+app.post("/auth/register", async (req, res) => {
   try {
     const { email, password, name } = req.body;
 
@@ -97,7 +97,7 @@ app.post("/api/auth/register", async (req, res) => {
   }
 });
 
-app.post("/api/auth/login", async (req, res) => {
+app.post("/auth/login", async (req, res) => {
   try {
     const { email, password } = req.body;
 
@@ -132,7 +132,7 @@ app.post("/api/auth/login", async (req, res) => {
   }
 });
 
-app.get("/api/auth/validate", authMiddleware, async (req, res) => {
+app.get("/auth/validate", authMiddleware, async (req, res) => {
   try {
     const user = await prisma.user.findUnique({
       where: { id: req.userId },
@@ -154,7 +154,7 @@ app.get("/api/auth/validate", authMiddleware, async (req, res) => {
 });
 
 // Rotas de viagens (protegidas)
-app.post("/api/trips", authMiddleware, async (req, res) => {
+app.post("/trips", authMiddleware, async (req, res) => {
   try {
     const { destination, departureDate, departureTime, price, busType } = req.body;
     const trip = await prisma.trip.create({
@@ -173,7 +173,7 @@ app.post("/api/trips", authMiddleware, async (req, res) => {
   }
 });
 
-app.get("/api/trips", authMiddleware, async (req, res) => {
+app.get("/trips", authMiddleware, async (req, res) => {
   try {
     const trips = await prisma.trip.findMany();
     res.json(trips);
@@ -182,7 +182,7 @@ app.get("/api/trips", authMiddleware, async (req, res) => {
   }
 });
 
-app.get("/api/trips/:tripId", authMiddleware, async (req, res) => {
+app.get("/trips/:tripId", authMiddleware, async (req, res) => {
   try {
     const { tripId } = req.params;
     const trip = await prisma.trip.findUnique({
@@ -199,7 +199,7 @@ app.get("/api/trips/:tripId", authMiddleware, async (req, res) => {
 });
 
 // Rotas de passageiros (protegidas)
-app.post("/api/trips/:tripId/passengers", authMiddleware, async (req, res) => {
+app.post("/trips/:tripId/passengers", authMiddleware, async (req, res) => {
   try {
     const { tripId } = req.params;
     const { name, cpf, seatNumber, hasPaid } = req.body;
@@ -221,7 +221,7 @@ app.post("/api/trips/:tripId/passengers", authMiddleware, async (req, res) => {
   }
 });
 
-app.get("/api/trips/:tripId/passengers", authMiddleware, async (req, res) => {
+app.get("/trips/:tripId/passengers", authMiddleware, async (req, res) => {
   try {
     const { tripId } = req.params;
     const passengers = await prisma.passenger.findMany({
@@ -233,7 +233,7 @@ app.get("/api/trips/:tripId/passengers", authMiddleware, async (req, res) => {
   }
 });
 
-app.put("/api/trips/:tripId/passengers/:passengerId/payment", authMiddleware, async (req, res) => {
+app.put("/trips/:tripId/passengers/:passengerId/payment", authMiddleware, async (req, res) => {
   try {
     const { tripId, passengerId } = req.params;
     const { hasPaid } = req.body;
@@ -265,7 +265,7 @@ app.put("/api/trips/:tripId/passengers/:passengerId/payment", authMiddleware, as
   }
 });
 
-app.delete("/api/trips/:tripId/passengers/:passengerId", authMiddleware, async (req, res) => {
+app.delete("/trips/:tripId/passengers/:passengerId", authMiddleware, async (req, res) => {
   try {
     const { tripId, passengerId } = req.params;
 
@@ -292,7 +292,7 @@ app.delete("/api/trips/:tripId/passengers/:passengerId", authMiddleware, async (
 });
 
 // Rota para gerar PDF dos passageiros
-app.get("/api/trips/:tripId/passengers/pdf", authMiddleware, async (req, res) => {
+app.get("/trips/:tripId/passengers/pdf", authMiddleware, async (req, res) => {
   try {
     const { tripId } = req.params;
 
