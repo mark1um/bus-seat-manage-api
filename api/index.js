@@ -61,7 +61,7 @@ app.get("/trips", async (req, res) => {
       const totalSeats = {
         small: 20,
         medium: 30,
-        large: 40
+        large: 50
       }[trip.busType];
 
       const occupiedSeats = trip.passengers.length;
