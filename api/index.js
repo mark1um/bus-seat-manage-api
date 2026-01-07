@@ -106,7 +106,7 @@ app.get("/trips/:tripId", async (req, res) => {
 app.post("/trips/:tripId/passengers", async (req, res) => {
   try {
     const { tripId } = req.params;
-    const { name, cpf, seatNumber, hasPaid } = req.body;
+    const { name, cpf, seatNumber, hasPaid, contato, origem, destino, valorPago } = req.body;
 
     const passenger = await prisma.passenger.create({
       data: {
@@ -115,6 +115,10 @@ app.post("/trips/:tripId/passengers", async (req, res) => {
         cpf,
         seatNumber,
         hasPaid,
+        contato,
+        origem,
+        destino,
+        valorPago,
         tripId,
       },
     });
@@ -209,7 +213,7 @@ app.get("/trips/:tripId/passengers/pdf", async (req, res) => {
       return res.status(404).json({ error: "Trip not found" });
     }
 
-    const doc = new PDFDocument({ margin: 50 });
+    const doc = new PDFDocument({ margin: 40, size: "A4" });
     const stream = new PassThrough();
 
     res.setHeader("Content-Type", "application/pdf");
@@ -218,35 +222,125 @@ app.get("/trips/:tripId/passengers/pdf", async (req, res) => {
     doc.pipe(stream);
     stream.pipe(res);
 
-    doc.fontSize(18).text(`Passageiros da Viagem para ${trip.destination}`, {
+    // Obter data formatada
+    const today = new Date();
+    const dateStr = `${String(today.getDate()).padStart(2, '0')}/${String(today.getMonth() + 1).padStart(2, '0')}/${today.getFullYear()}`;
+
+    // Título principal
+    doc.fontSize(14).font("Helvetica-Bold").text("meu pau " + dateStr, {
       align: "center",
     });
-    doc.moveDown(1);
+
+    // Subtítulo
+    doc.fontSize(12).text(`${trip.destination.toUpperCase()}`, {
+      align: "center",
+      marginBottom: 20,
+    });
+
+    // Definir largura das colunas
+    const startX = 40;
+    const colWidths = {
+      num: 30,
+      nome: 100,
+      contato: 90,
+      origem: 80,
+      documento: 95,
+      pagamento: 70,
+      destino: 95,
+    };
 
     const tableTop = doc.y;
-    const colWidths = [200, 150, 80, 80];
+    let currentY = tableTop;
 
-    doc
-      .fontSize(12)
-      .text("Nome", 50, tableTop, { bold: true })
-      .text("CPF", 250, tableTop, { bold: true })
-      .text("Assento", 400, tableTop, { bold: true })
-      .text("Pago", 480, tableTop, { bold: true });
+    // Desenhar cabeçalho da tabela com bordas
+    const headerHeight = 25;
+    
+    // Linha de cima
+    doc.moveTo(startX, currentY).lineTo(startX + 560, currentY).stroke();
 
-    doc.moveDown(0.5);
-    doc.moveTo(50, doc.y).lineTo(550, doc.y).stroke();
-    doc.moveDown(0.5);
+    // Conteúdo do cabeçalho
+    currentY += 5;
+    doc.fontSize(10).font("Helvetica-Bold");
+    
+    let colX = startX + 3;
+    doc.text("#", colX, currentY);
+    
+    colX += colWidths.num;
+    doc.text("NOME", colX, currentY);
+    
+    colX += colWidths.nome;
+    doc.text("CONTATO", colX, currentY);
+    
+    colX += colWidths.contato;
+    doc.text("ORIGEM", colX, currentY);
+    
+    colX += colWidths.origem;
+    doc.text("DOCUMENTO", colX, currentY);
+    
+    colX += colWidths.documento;
+    doc.text("PAGAMENTO", colX, currentY);
+    
+    colX += colWidths.pagamento;
+    doc.text("DESTINO", colX, currentY);
 
+    // Linha de separação após cabeçalho
+    currentY += headerHeight - 5;
+    doc.moveTo(startX, currentY).lineTo(startX + 560, currentY).stroke();
+
+    currentY += 3;
+
+    // Desenhar linhas de passageiros
+    const rowHeight = 20;
+    
     trip.passengers.forEach((passenger, index) => {
-      const y = tableTop + (index + 2) * 20;
+      const rowNum = index + 1;
+      
+      // Preencher com cor amarela para linhas ímpares
+      if (rowNum % 2 === 1) {
+        doc.rect(startX, currentY - 2, 560, rowHeight).fill("#FFFF99").stroke();
+      } else {
+        doc.moveTo(startX, currentY - 2).lineTo(startX + 560, currentY - 2).stroke();
+        doc.moveTo(startX, currentY + rowHeight - 2).lineTo(startX + 560, currentY + rowHeight - 2).stroke();
+      }
 
-      doc
-        .fontSize(10)
-        .text(passenger.name, 50, y)
-        .text(passenger.cpf, 250, y)
-        .text(passenger.seatNumber.toString(), 400, y)
-        .text(passenger.hasPaid ? "Sim" : "Não", 480, y);
+      doc.fontSize(9).font("Helvetica").fillColor("black");
+
+      let colX = startX + 3;
+      doc.text(String(rowNum), colX, currentY);
+      
+      colX += colWidths.num;
+      doc.text(passenger.name || "", colX, currentY, { width: colWidths.nome - 5 });
+      
+      colX += colWidths.nome;
+      doc.text(passenger.contato || "", colX, currentY, { width: colWidths.contato - 5 });
+      
+      colX += colWidths.contato;
+      doc.text(passenger.origem || "", colX, currentY, { width: colWidths.origem - 5 });
+      
+      colX += colWidths.origem;
+      doc.text(passenger.cpf || "", colX, currentY, { width: colWidths.documento - 5 });
+      
+      colX += colWidths.documento;
+      doc.text(passenger.hasPaid ? "SIM" : "NÃO", colX, currentY);
+      
+      colX += colWidths.pagamento;
+      doc.text(passenger.destino || "", colX, currentY, { width: colWidths.destino - 5 });
+
+      currentY += rowHeight;
     });
+
+    // Linha de fechamento da tabela
+    doc.moveTo(startX, currentY).lineTo(startX + 560, currentY).stroke();
+
+    // Desenhar bordas verticais
+    doc.moveTo(startX, tableTop).lineTo(startX, currentY).stroke();
+    doc.moveTo(startX + colWidths.num, tableTop).lineTo(startX + colWidths.num, currentY).stroke();
+    doc.moveTo(startX + colWidths.num + colWidths.nome, tableTop).lineTo(startX + colWidths.num + colWidths.nome, currentY).stroke();
+    doc.moveTo(startX + colWidths.num + colWidths.nome + colWidths.contato, tableTop).lineTo(startX + colWidths.num + colWidths.nome + colWidths.contato, currentY).stroke();
+    doc.moveTo(startX + colWidths.num + colWidths.nome + colWidths.contato + colWidths.origem, tableTop).lineTo(startX + colWidths.num + colWidths.nome + colWidths.contato + colWidths.origem, currentY).stroke();
+    doc.moveTo(startX + colWidths.num + colWidths.nome + colWidths.contato + colWidths.origem + colWidths.documento, tableTop).lineTo(startX + colWidths.num + colWidths.nome + colWidths.contato + colWidths.origem + colWidths.documento, currentY).stroke();
+    doc.moveTo(startX + colWidths.num + colWidths.nome + colWidths.contato + colWidths.origem + colWidths.documento + colWidths.pagamento, tableTop).lineTo(startX + colWidths.num + colWidths.nome + colWidths.contato + colWidths.origem + colWidths.documento + colWidths.pagamento, currentY).stroke();
+    doc.moveTo(startX + 560, tableTop).lineTo(startX + 560, currentY).stroke();
 
     doc.end();
   } catch (error) {

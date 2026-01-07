@@ -23,6 +23,10 @@ model Passenger {
   cpf        String
   seatNumber String
   hasPaid    Boolean
+  contato    String
+  origem     String
+  destino    String
+  valorPago  Float
   tripId     String
   trip       Trip   @relation(fields: [tripId], references: [id], onDelete: Cascade)
 }
